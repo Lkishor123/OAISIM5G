@@ -1,0 +1,88 @@
+---
+
+- name: Include vars of all.yaml
+  include_vars:
+    file: all.yaml
+  tags:
+    - agwc
+    - base
+
+- name: Install aptitude using apt
+  apt: name=aptitude state=latest force_apt_get=yes
+  tags:
+    - agwc
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  tags:
+    - agwc
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu focal stable
+    state: present
+  tags:
+    - agwc
+
+- name: Install Docker
+  tags:
+    - agwc
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+
+- name: Download docker-compose {{ docker_compose_version }}
+  get_url:
+    url: https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64
+    dest: ~/docker-compose
+    mode: '+x'
+  tags:
+    - agwc
+
+- name: Check docker-compose exists
+  stat: path=~/docker-compose
+  register: docker_compose
+  tags:
+    - agwc
+
+- name: Move docker-compose to /usr/local/bin/docker-compose
+  command: mv ~/docker-compose /usr/local/bin/docker-compose
+  when: docker_compose.stat.exists
+  tags:
+    - agwc
+
+- name: start docker service
+  systemd: name=docker state=started enabled=yes
+  tags:
+    - agwc
+
+
+- name: docker pull panyogesh/oai-gnb:latest
+  shell: sudo docker pull panyogesh/oai-gnb:latest
+  tags:
+    - agwc
+    - base
+
+- name: docker pull panyogesh/oai-nr-ue:latest
+  shell: sudo docker pull panyogesh/oai-nr-ue:latest
+  tags:
+    - agwc
+    - base
+
+- name: docker image tag panyogesh/oai-gnb:latest oai-gnb:latest
+  shell: sudo docker image tag panyogesh/oai-gnb:latest oai-gnb:latest
+  tags:
+    - agwc
+
+- name: sudo docker image tag panyogesh/oai-nr-ue:latest oai-nr-ue:latest
+  shell: sudo docker image tag panyogesh/oai-nr-ue:latest oai-nr-ue:latest
+  tags:
+    - agwc
